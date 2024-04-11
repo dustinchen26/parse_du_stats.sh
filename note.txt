@@ -1,0 +1,138 @@
+修改底下script
+原本輸出
+UE-ID=17019 DL-Throughput=0.1089 UL-Throughput=5.9989
+UE-ID=17020 DL-Throughput=0.0205 UL-Throughput=0.0390
+UE-ID=17021 DL-Throughput=0.1009 UL-Throughput=5.8371
+UE-ID=17019 dlbler=0.0080 ulbler=0.0592
+UE-ID=17020 dlbler=0.0000 ulbler=0.0000
+UE-ID=17021 dlbler=0.0000 ulbler=0.0537
+
+調整換行符號，增加符號|，改成如下
+|UE-ID=17019 DL-Throughput=0.1089 UL-Throughput=5.9989 |UE-ID=17020 DL-Throughput=0.0205 UL-Throughput=0.0390 |UE-ID=17021 DL-Throughput=0.1009 UL-Throughput=5.8371
+|UE-ID=17019 dlbler=0.0080 ulbler=0.0592				|UE-ID=17020 dlbler=0.0000 ulbler=0.0000 |				UE-ID=17021 dlbler=0.0000 ulbler=0.0537
+Finished processing file: du_stats_24_03_20_07_05_12.txt
+
+script如下
+##################################
+# Author: Dustin_Chen 2024.01.05
+##################################
+
+#!/bin/bash
+
+# Function to parse GNB DU Statistics line
+parseGNBLine() {
+    local line="$1"
+    echo -e "\n$line"
+}
+
+# calculate DL BLER and UL BLER
+calculateDLandULbler() {
+    local ack_tb0="$1"
+    local nack_tb0="$2"
+    local ulCRCsucces="$3"
+    local ulCRCfail="$4"
+
+    local dlBler="0.0000"
+    local ulBler="0.0000"
+
+    # Check if the denominator is not zero before calculating DL BLER
+    if [[ $(($ack_tb0 + $nack_tb0)) -ne 0 ]]; then
+        dlBler=$(awk "BEGIN {printf \"%.4f\", $nack_tb0 / ($ack_tb0 + $nack_tb0)}")
+    fi
+
+    # Check if the denominator is not zero before calculating UL BLER
+    if [[ $(($ulCRCsucces + $ulCRCfail)) -ne 0 ]]; then
+        ulBler=$(awk "BEGIN {printf \"%.4f\", $ulCRCfail / ($ulCRCsucces + $ulCRCfail)}")
+    fi
+
+    echo "UE-ID=$ueId dlbler=$dlBler ulbler=$ulBler"
+}
+
+parseTput() {
+    local line="$1"
+    local values=($line)
+    local ueId=${values[0]}
+    local dlTput=${values[5]}
+    local ulTput=${values[7]}
+    
+    # 檢查 DL-Throughput 和 UL-Throughput 是否為空，如果不是，則輸出
+    if [[ -n $dlTput && -n $ulTput ]]; then
+        echo "UE-ID=$ueId DL-Throughput=$dlTput UL-Throughput=$ulTput"
+    fi
+
+    # Continue parsing subsequent lines with numbers, empty lines, or lines starting with dashes
+    while read -r nextLine && [[ $nextLine =~ ^[0-9]*$|^$ || ! $nextLine =~ ^--------------------------------------------------------------------------------------------- ]]; do
+        # Skip empty lines
+        if [[ -z $nextLine ]]; then
+            continue
+        fi
+
+        values=($nextLine)
+		local ueId=${values[0]}
+		local dlTput=${values[5]}
+		local ulTput=${values[7]}
+
+        # 檢查 DL-Throughput 和 UL-Throughput 是否為空，如果不是，則輸出
+        if [[ -n $dlTput && -n $ulTput ]]; then
+            echo "UE-ID=$ueId DL-Throughput=$dlTput UL-Throughput=$ulTput"
+        fi
+    done
+}
+
+# Function to parse UE data
+parseUEData() {
+    local line="$1"
+    local values=($line)
+    local ueId=${values[0]}
+    local ack_tb0=${values[5]}
+    local nack_tb0=${values[6]}
+    local ulCRCsucces=${values[18]}
+    local ulCRCfail=${values[19]}
+	
+    #echo "UE-ID=$ueId DL-TX=$ack_tb0 DL-RETX=$nack_tb0 UL-CRC-SUCC=$ulCRCsucces UL-CRC-FAIL=$ulCRCfail"
+    calculateDLandULbler "$ack_tb0" "$nack_tb0" "$ulCRCsucces" "$ulCRCfail" 
+
+    # Continue parsing subsequent lines with numbers
+    while read -r nextLine && [[ $nextLine =~ ^[0-9] ]]; do
+        values=($nextLine)
+        ueId=${values[0]}
+        ack_tb0=${values[5]}
+        nack_tb0=${values[6]}
+        ulCRCsucces=${values[18]}
+		ulCRCfail=${values[19]}
+		
+        #echo "UE-ID=$ueId DL-TX=$ack_tb0 DL-RETX=$nack_tb0 UL-CRC-SUCC=$ulCRCsucces UL-CRC-FAIL=$ulCRCfail"
+        calculateDLandULbler "$ack_tb0" "$nack_tb0" "$ulCRCsucces" "$ulCRCfail" 
+    done
+}
+
+# Main script
+for file in du_stats_*; do
+    echo "Processing file: $file"
+
+    lastGNBStatisticsLine=$(grep -n "DU ver" "$file" | cut -d: -f1 | tail -n 1)
+    if [[ -n $lastGNBStatisticsLine ]]; then
+        tail -n +"$lastGNBStatisticsLine" "$file" | while IFS= read -r line; do
+            line=$(echo "$line" | tr -d '\r')  # Remove carriage return character if present
+            line=$(echo "$line" | sed 's/^ *//;s/ *$//')  # Trim leading and trailing spaces
+
+            if [[ $line == *"GNB DU Statistics  "* ]]; then
+                parseGNBLine "$line"
+            elif [[ $line == *"UE-ID     BEAM-ID   CSIRS-PORT"* ]]; then
+                # Check if the next line has numbers
+                read -r nextLine
+                if [[ $nextLine =~ ^[0-9] ]]; then
+                    parseTput "$nextLine"
+                fi				
+            elif [[ $line == *"UE-ID   CELL-ID   ON-SUL"* ]]; then
+                # Check if the next line has numbers
+                read -r nextLine
+                if [[ $nextLine =~ ^[0-9] ]]; then
+                    parseUEData "$nextLine"
+                fi
+            fi
+        done
+    fi
+
+    echo "Finished processing file: $file"
+done

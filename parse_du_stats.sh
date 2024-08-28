@@ -1,5 +1,5 @@
 ##################################
-# Author: Dustin_Chen 2024.08.20
+# Author: Dustin_Chen 2024.8.28
 ##################################
 
 #!/bin/bash
@@ -25,21 +25,23 @@ calculateDLandULbler() {
     local nack_tb0="$2"
     local ulCRCsucces="$3"
     local ulCRCfail="$4"
-
-    local dlBler="0.0000"
-    local ulBler="0.0000"
+    local dl_mcs="$5"
+    local ul_mcs="$6"
+	
+    local dlBler="0.000" #%.3f
+    local ulBler="0.000" #%.3f
 
     # Check if the denominator is not zero before calculating DL BLER
     if [[ $(($ack_tb0 + $nack_tb0)) -ne 0 ]]; then
-        dlBler=$(awk "BEGIN {printf \"%.4f\", $nack_tb0 / ($ack_tb0 + $nack_tb0)}")
+        dlBler=$(awk "BEGIN {printf \"%.3f\", $nack_tb0 / ($ack_tb0 + $nack_tb0)}")
     fi
 
     # Check if the denominator is not zero before calculating UL BLER
     if [[ $(($ulCRCsucces + $ulCRCfail)) -ne 0 ]]; then
-        ulBler=$(awk "BEGIN {printf \"%.4f\", $ulCRCfail / ($ulCRCsucces + $ulCRCfail)}")
+        ulBler=$(awk "BEGIN {printf \"%.3f\", $ulCRCfail / ($ulCRCsucces + $ulCRCfail)}")
     fi
 
-    echo "UE-ID=$ueId dlbler=$dlBler ulbler=$ulBler"
+    echo "UE-ID=$ueId dl_mcs=$dl_mcs ul_mcs=$ul_mcs dlbler=$dlBler ulbler=$ulBler "
 }
 
 parseTput() {
@@ -80,11 +82,14 @@ parseUEData() {
     local ueId=${values[0]}
     local ack_tb0=${values[5]}
     local nack_tb0=${values[6]}
+	local dl_mcs=${values[13]}
     local ulCRCsucces=${values[18]}
     local ulCRCfail=${values[19]}
+	local ul_mcs=${values[22]}
     
-    #echo "UE-ID=$ueId DL-TX=$ack_tb0 DL-RETX=$nack_tb0 UL-CRC-SUCC=$ulCRCsucces UL-CRC-FAIL=$ulCRCfail"
-    calculateDLandULbler "$ack_tb0" "$nack_tb0" "$ulCRCsucces" "$ulCRCfail" 
+	##part1
+    #echo "UE-ID=$ueId DL-TX=$ack_tb0 DL-RETX=$nack_tb0 UL-CRC-SUCC=$ulCRCsucces UL-CRC-FAIL=$ulCRCfail DL-MCS=$dl_mcs UL-MCS=$ul_mcs"
+    calculateDLandULbler "$ack_tb0" "$nack_tb0" "$ulCRCsucces" "$ulCRCfail" "$dl_mcs" "$ul_mcs" 
 
     # Continue parsing subsequent lines with numbers
     while read -r nextLine && [[ $nextLine =~ ^[0-9] ]]; do
@@ -92,11 +97,14 @@ parseUEData() {
         ueId=${values[0]}
         ack_tb0=${values[5]}
         nack_tb0=${values[6]}
+		dl_mcs=${values[13]}
         ulCRCsucces=${values[18]}
         ulCRCfail=${values[19]}
-        
-        #echo "UE-ID=$ueId DL-TX=$ack_tb0 DL-RETX=$nack_tb0 UL-CRC-SUCC=$ulCRCsucces UL-CRC-FAIL=$ulCRCfail"
-        calculateDLandULbler "$ack_tb0" "$nack_tb0" "$ulCRCsucces" "$ulCRCfail" 
+        ul_mcs=${values[22]}
+	
+		##part2
+        #echo "UE-ID=$ueId DL-TX=$ack_tb0 DL-RETX=$nack_tb0 UL-CRC-SUCC=$ulCRCsucces UL-CRC-FAIL=$ulCRCfail DL-MCS=$dl_mcs UL-MCS=$ul_mcs"
+        calculateDLandULbler "$ack_tb0" "$nack_tb0" "$ulCRCsucces" "$ulCRCfail" "$dl_mcs" "$ul_mcs" 
     done
 }
 

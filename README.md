@@ -1,8 +1,12 @@
 ## Example
-parse du_stats_XXX
+use windows command window to run the parsing script 
+
 ```
-C:\Users\Dustin_Chen\Desktop\@parse_du_status>wsl ./parse_du_stats.sh
-Processing file: /mnt/c/Users/Dustin_Chen/Desktop/@parse_du_status/du_stats_24_08_19_19_28_12.txt
+在windows要把換行符號用notepad取代
+取代: 規則運算式 \r\n 換成 \n
+
+C:\Users\Dustin_Chen\Desktop\parse_du_stats.sh>wsl ./parse_du_stats.sh
+Processing file: /mnt/c/Users/Dustin_Chen/Desktop/parse_du_stats.sh/du_stats_24_08_19_19_28_12.txt
 Last GNB Statistics Line: 8946
 GNB DU Statistics  Mon Aug 19 19:33:12 2024
 UE-ID=17024 DL-Throughput=0.0000 UL-Throughput=0.0000
@@ -16,5 +20,5 @@ UE-ID=17024 dl_mcs=0 ul_mcs=0 dlbler=0.000 ulbler=0.227
 UE-ID=17027 dl_mcs=0 ul_mcs=0 dlbler=0.000 ulbler=0.556
 UE-ID=17030 dl_mcs=0 ul_mcs=19 dlbler=0.359 ulbler=0.007
 UE-ID=17039 dl_mcs=10 ul_mcs=17 dlbler=0.207 ulbler=0.163
-Finished processing file: /mnt/c/Users/Dustin_Chen/Desktop/@parse_du_status/du_stats_24_08_19_19_28_12.txt
+Finished processing file: /mnt/c/Users/Dustin_Chen/Desktop/parse_du_stats.sh/du_stats_24_08_19_19_28_12.txt
 ```

@@ -1,11 +1,18 @@
+#!/bin/bash
+
 ##################################
 # Author: Dustin_Chen 2024.8.28
 ##################################
 
-#!/bin/bash
+# Specify the default directory here (leave empty to use the current directory).
+default_directory=""
 
-# Switch to the directory /var/log/du/
-#cd /var/log/du/ || { echo "Failed to change directory to /var/log/du/"; exit 1; }
+directory="${default_directory:-$(pwd)}" # Use specified directory or fallback to current directory
+
+if [[ ! -d "$directory" ]]; then
+    echo "Error: Directory '$directory' does not exist."
+    exit 1
+fi
 
 # Function to parse GNB DU Statistics line
 parseGNBLine() {
@@ -82,10 +89,10 @@ parseUEData() {
     local ueId=${values[0]}
     local ack_tb0=${values[5]}
     local nack_tb0=${values[6]}
-	local dl_mcs=${values[13]}
+    local dl_mcs=${values[13]}
     local ulCRCsucces=${values[18]}
     local ulCRCfail=${values[19]}
-	local ul_mcs=${values[22]}
+    local ul_mcs=${values[22]}
     
 	##part1
     #echo "UE-ID=$ueId DL-TX=$ack_tb0 DL-RETX=$nack_tb0 UL-CRC-SUCC=$ulCRCsucces UL-CRC-FAIL=$ulCRCfail DL-MCS=$dl_mcs UL-MCS=$ul_mcs"
@@ -97,7 +104,7 @@ parseUEData() {
         ueId=${values[0]}
         ack_tb0=${values[5]}
         nack_tb0=${values[6]}
-		dl_mcs=${values[13]}
+        dl_mcs=${values[13]}
         ulCRCsucces=${values[18]}
         ulCRCfail=${values[19]}
         ul_mcs=${values[22]}
@@ -109,7 +116,7 @@ parseUEData() {
 }
 
 # Main script
-for file in du_stats_*; do
+for file in "$directory"/du_stats_*; do
     file_path=$(realpath "$file")
     echo "Processing file: $file_path"
 
